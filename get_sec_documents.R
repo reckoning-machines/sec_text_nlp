@@ -59,7 +59,3 @@ get_mdna_file <- function(ticker) {
 data <- map_df(tickers$Symbol, get_mdna_file)
 #munge from here.  probably in python.
 
-
-
-
-
