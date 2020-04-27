@@ -1,3 +1,6 @@
+
+#file creates a set of csv from ticker list which include metadata & text data.
+
 library(edgarWebR)
 library(xml2)
 library(knitr)
@@ -6,6 +9,9 @@ library(purrr)
 library(rvest)
 library(tidyr)
 library(readr)
+
+#for now we're only doing the discussion.
+#i want to think how to map a generic section function.  may just put it all in one vs a parameter.
 
 #str_mdna <- 'discussion'
 #str_mkt_risk <- 'qualitative'
@@ -27,6 +33,7 @@ get_section_text <- function(href) {
   doc_href <- df_filing_documents[df_filing_documents$type == "10-K" | df_filing_documents$type == "10-Q",]$href
   doc <- parse_filing(doc_href)
   txt <- doc[grepl("discussion", doc$item.name, ignore.case = TRUE), ] # only discussion for now
+  #we could do some text preprocessing here.
   return(as_tibble(txt))
 }
 
@@ -49,13 +56,10 @@ get_mdna_file <- function(ticker) {
   return(data)
 }
 
-get_mdna_file(ticker)
-
 data <- map_df(tickers$Symbol, get_mdna_file)
+#munge from here.  probably in python.
 
 
 
-
-print(end_time - start_time)
 
 
