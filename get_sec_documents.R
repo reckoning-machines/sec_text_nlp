@@ -1,7 +1,7 @@
 
 #file creates a set of csv from ticker list which include metadata & text data.
 
-library(edgarWebR)
+library(edgarWebR) #this is an up to date library with an active maintainer.
 library(xml2)
 library(knitr)
 library(dplyr)
@@ -10,7 +10,8 @@ library(rvest)
 library(tidyr)
 library(readr)
 
-#for now we're only doing the discussion.
+#for now we're only doing the discussion section.
+
 #i want to think how to map a generic section function.  may just put it all in one vs a parameter.
 
 #str_mdna <- 'discussion'
