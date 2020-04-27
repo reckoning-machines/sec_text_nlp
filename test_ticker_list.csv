@@ -1,0 +1,23 @@
+,GICS Sector,Symbol,mkt_cap
+0,Communication Services,GOOG,877467271168
+1,Communication Services,FB,541847748608
+2,Consumer Discretionary,AMZN,1201554849792
+3,Consumer Discretionary,HD,227906764800
+4,Consumer Staples,WMT,366610350080
+5,Consumer Staples,PG,294056525824
+6,Energy,XOM,184996691968
+7,Energy,CVX,162445934592
+8,Financials,JPM,276351647744
+9,Financials,BAC,192422363136
+10,Health Care,JNJ,408265162752
+11,Health Care,UNH,275975733248
+12,Industrials,LMT,107061673984
+13,Industrials,UNP,105915490304
+14,Information Technology,MSFT,1327636021248
+15,Information Technology,AAPL,1238129573888
+16,Materials,LIN,96716251136
+17,Materials,ECL,52073017344
+18,Real Estate,AMT,108472795136
+19,Real Estate,CCI,67350806528
+20,Utilities,NEE,117317083136
+21,Utilities,D,65296957440
