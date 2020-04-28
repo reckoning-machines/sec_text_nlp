@@ -43,13 +43,15 @@ get_mdna_file <- function(str_ticker) {
   print(str_ticker)
   df_filings <- get_filings_links(str_ticker)
   
-  df_data <- filings %>% rowwise() %>%
+  df_data <- df_filings %>% rowwise() %>%
     mutate(mdna = map(href, get_section_text)) %>%
     ungroup() %>%
     select(period_date,filing_date,type,form_name,documents,mdna) %>%
     group_by(period_date) %>%
     arrange(desc(period_date)) %>%
-    unnest(cols=c(mdna)) %>%
+    unnest(cols=c(mdna))
+  
+  df_data %>%
     write_csv(paste0(ticker,'.csv'))
   
   end_time <- Sys.time()
@@ -60,3 +62,6 @@ get_mdna_file <- function(str_ticker) {
 df_data <- map_df(df_tickers$Symbol, get_mdna_file)
 #munge from here.  probably in python.
 
+x <- get_filings_links('AXP')
+x <- get_mdna_file("AXP")
+x
