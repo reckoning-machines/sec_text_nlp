@@ -9,16 +9,15 @@ library(purrr)
 library(rvest)
 library(tidyr)
 library(readr)
+#library(googledrive)
+#library(log4r) TODO logging file.
 
-#for now we're only doing the discussion section.
+HOME_DIR <- getwd()
+DATA_DIR <- paste0(HOME_DIR,"/DATA/")
+#dir.create('/data') #doesn't work on the mac .. .w out chmod stuff TODO
 
-#i want to think how to map a generic section function.  may just put it all in one vs a parameter.
-
-#str_mdna <- 'discussion'
-#str_mkt_risk <- 'qualitative'
-#str_controls <-'controls'
-#str_risk <- 'risk factors'
-
+#df_tickers <- read_csv("test_ticker_list.csv")
+#df_tickers <- drive_download("~/sec_getter/test_ticker_list.csv",type="csv",overwrite = TRUE)
 df_tickers <- read_csv("test_ticker_list.csv")
 
 get_filings_links <-function(str_ticker) {
@@ -34,20 +33,23 @@ get_section_text <- function(str_href, str_section, str_search) {
   str_doc_href <- df_filing_documents[df_filing_documents$type == "10-K" | df_filing_documents$type == "10-Q",]$href
   doc <- parse_filing(str_doc_href)
 
-  #print(str_section)
-  
   df_txt <- doc[grepl(str_section, doc$item.name, ignore.case = TRUE) & grepl(str_search, doc$item.name, ignore.case = TRUE), ] # only discussion for now
   #we could do some text preprocessing here.
-  df_txt$section <- str_section
-  return(as_tibble(df_txt))
+
+  df_txt <- as_tibble(df_txt) %>%
+    mutate(section = str_search)
+
+  return(df_txt)
 }
 
-get_document_text <- function(str_ticker) {
+get_document_text <- function(str_ticker, force = FALSE) { #not using force yet
   start_time <- Sys.time()
   
   print(str_ticker)
   
   df_filings <- get_filings_links(str_ticker)
+
+  print(href)
   
   df_data <- (df_filings) %>% 
     rowwise() %>%
@@ -59,36 +61,61 @@ get_document_text <- function(str_ticker) {
     select(period_date,filing_date,type,form_name,documents,nest_discussion,nest_qualitative,nest_controls,nest_risk) %>%
     group_by(period_date) %>%
     arrange(desc(period_date))
-    
-  df_data %>%
-    unnest(cols=c(nest_discussion)) %>%
-    select(-nest_qualitative,-nest_controls,-nest_risk) %>%
-    write_csv(paste0(str_ticker,"_discussion.csv"))
-
-  df_data %>%
-      unnest(cols=c(nest_qualitative)) %>%
-      select(-nest_discussion,-nest_controls,-nest_risk) %>%
-      write_csv(paste0(str_ticker,"_qualitative.csv"))
   
-  df_data %>%
-      unnest(cols=c(nest_controls)) %>%
-      select(-nest_discussion,-nest_qualitative,-nest_risk) %>%
-      write_csv(paste0(str_ticker,"_controls.csv"))
+  #jenky - find a rowwise application
+  a <- df_data %>% 
+    select(period_date,filing_date,type,form_name,documents,nest_discussion) %>%
+    unnest(nest_discussion)
+  b <- df_data %>% 
+    select(period_date,filing_date,type,form_name,documents,nest_qualitative) %>%
+    unnest(nest_qualitative)
+  c <- df_data %>% 
+    select(period_date,filing_date,type,form_name,documents,nest_controls) %>%
+    unnest(nest_controls)
+  d <- df_data %>% 
+    select(period_date,filing_date,type,form_name,documents,nest_risk) %>%
+    unnest(nest_risk)
+  df_data <- rbind(a,b,c,d) %>%
+    write_csv(paste0(DATA_DIR,str_ticker,"_sec_text.csv")) 
+  
+  #df_data %>%
+  #  unnest(cols=c(nest_discussion)) %>%
+  #  select(-nest_qualitative,-nest_controls,-nest_risk) %>%
+  #  write_csv(paste0(str_ticker,"_discussion.csv")) 
+
+
+  #df_data %>%
+  #  unnest(cols=c(nest_qualitative)) %>%
+  #  select(-nest_discussion,-nest_controls,-nest_risk) %>%
+  #  write_csv(paste0(str_ticker,"_qualitative.csv")) 
+
+  #df_data %>%
+  #  unnest(cols=c(nest_controls)) %>%
+  #  select(-nest_discussion,-nest_qualitative,-nest_risk) %>%
+  #  write_csv(paste0(str_ticker,"_controls.csv")) 
     
-  df_data %>%
-      unnest(cols=c(nest_risk)) %>%
-      select(-nest_discussion,-nest_controls,-nest_qualitative) %>%
-      write_csv(paste0(str_ticker,"_risk.csv"))
-      
+  #print("four")
+  #df_data %>%
+  #  unnest(cols=c(nest_risk)) %>%
+  #  select(-nest_discussion,-nest_controls,-nest_qualitative) %>%
+  #  write_csv(paste0(str_ticker,"_risk.csv")) 
+  
   end_time <- Sys.time()
   print(end_time - start_time)
   return(df_data)
 }
 
+upload_files <- function(str_ticker, force = FALSE) { #too slow to be useful
+  print(str_ticker)
+  drive_upload(paste0(getwd(),"/",str_ticker,"_discussion.csv"),path = paste0("~/sec_getter/data/",str_ticker,"_discussion.csv"),overwrite = TRUE) 
+  drive_upload(paste0(getwd(),"/",str_ticker,"_qualitative.csv"),path = paste0("~/sec_getter/data/",str_ticker,"_qualitative.csv"),overwrite = TRUE) 
+  drive_upload(paste0(getwd(),"/",str_ticker,"_controls.csv"),path = paste0("~/sec_getter/data/",str_ticker,"_controls.csv"),overwrite = TRUE) 
+  drive_upload(paste0(getwd(),"/",str_ticker,"_risk.csv"),path = paste0("~/sec_getter/data/",str_ticker,"_risk.csv"),overwrite = TRUE) 
+}
+
+#long run.
 df_data <- map_df(df_tickers$Symbol, get_document_text)
 
-#df_data <- get_document_text('AXP')
-#df_data %>%
-#  select(type,nest_discussion,nest_qualitative,nest_controls,nest_risk) %>%
-#  tail()
-#df_data
+#map(df_tickers$Symbol, upload_files)
+
+
