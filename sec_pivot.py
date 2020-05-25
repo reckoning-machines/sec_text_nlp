@@ -15,7 +15,7 @@ df['quarter_end'] = df['quarter_end'].dt.to_period('q').dt.end_time
 df['quarter_end'] = df.quarter_end.map(lambda x: x.strftime('%Y-%m-%d'))
 #df['quarter_end'] = df['quarter_end'].dt.date
 #print(df[df['quarter_end']=='2017-04-01'])
-print(df[df['ticker']=='EL'])
+print(df[df['ticker']=='BAC'])
 import numpy as np
 df_data_pivot = pd.pivot_table(df, values='compound_baseline', index=['quarter_end'],
                 columns=['ticker'], aggfunc=np.sum, fill_value=0).reset_index()

@@ -52,6 +52,7 @@ write_log_csv <- function(df) {
 get_mdna_text <- function(str_href) {
   write_log(str_href)
 
+  #make this a func
   str_file_path <- ''
   file_path = strsplit(str_href,'/')
   for (i in 5:length(file_path[[1]])-1) {
@@ -74,7 +75,7 @@ get_mdna_text <- function(str_href) {
   if (file.exists(str_file_name)) {  #add force equals true
     write_log("filing documents from cache ...")
     
-    df_filing_documents <- read_csv(str_file_name) 
+    df_filing_documents <- read_csv(str_file_name,col_types = cols()) 
     df_filing_documents <- df_filing_documents %>% mutate_if(is.logical, as.character)
   } else {
     write_log("filing documents from sec ...")
@@ -85,6 +86,8 @@ get_mdna_text <- function(str_href) {
   }
   
   str_doc_href <- df_filing_documents[df_filing_documents$type == "10-K" | df_filing_documents$type == "10-Q",]$href
+  
+  print(df_filing_documents[df_filing_documents$type == "10-K" | df_filing_documents$type == "10-Q",])  
   
   file_end <- gsub("https://www.sec.gov",'',str_doc_href)
   
@@ -118,7 +121,10 @@ get_mdna_text <- function(str_href) {
     # paired vector of start and ending text to slice if found
 
     #JPM and #ECL
-    vec_start_end <- c('RESULTS OF OPERATIONS'='QUANTITATIVE AND QUALITATIVE DISCLOSURES',
+    vec_start_end <- c('OVERVIEW'='Risk management includes the identification',
+                        'Business Overview'='Selected Loan Maturity Data',
+                        'Financial Review'='Risk Management',
+                        'RESULTS OF OPERATIONS'='QUANTITATIVE AND QUALITATIVE DISCLOSURES',
                        'Overview'='Forward-Looking Statements',
                        'Entergy operates'='New Accounting Pronouncements',
                        'MANAGEMENT’S FINANCIAL DISCUSSION'='New Accounting Pronouncements',
@@ -178,6 +184,7 @@ get_section_text <- function(str_href, str_section, str_search) {
 
   df_filing_documents <- filing_documents(str_href)
   str_doc_href <- df_filing_documents[df_filing_documents$type == "10-K" | df_filing_documents$type == "10-Q",]$href
+
   doc <- parse_filing(str_doc_href)
 
   df_txt <- doc[grepl(str_section, doc$item.name, ignore.case = TRUE) & grepl(str_search, doc$item.name, ignore.case = TRUE), ] # only discussion for now
@@ -192,7 +199,6 @@ get_section_text <- function(str_href, str_section, str_search) {
 
 
 get_document_text <- function(str_ticker, force = FALSE) { #not using force yet
-  #str_ticker <- 'AAPL'
   start_time <- Sys.time()
 
   write_log(str_ticker)
@@ -206,7 +212,7 @@ get_document_text <- function(str_ticker, force = FALSE) { #not using force yet
   if (file.exists(filings_csv)) {  #add force equals true
     write_log("from cache ...")
     
-    df_filings <- read_csv(filings_csv) 
+    df_filings <- read_csv(filings_csv,col_types = cols()) 
     df_filings <- df_filings %>% mutate_if(is.logical, as.character)
     } else {
     write_log("from sec ...")
@@ -250,20 +256,14 @@ get_document_text <- function(str_ticker, force = FALSE) { #not using force yet
   return(df_data)
 }
 
-#long run.
-df_tickers <- read_csv('implementation_ticker_list.csv')
+df_tickers <- read_csv('implementation_ticker_list.csv',col_types = cols())
 #df_tickers <- df_tickers %>%
-#  filter(Symbol=='ABT')
+#  filter(Symbol=='AIG')
 
 dir.create('sec_data_folder', showWarnings = FALSE)
 
-#file creates a set of csv from ticker list which include metadata & text data.
-#df_tickers <- (df_tickers)
-
 future::plan(multiprocess)
-
-#df_data <- map_df(df_tickers$Symbol, get_document_text)
 
 df_data <- future_map_dfr(df_tickers$Symbol, get_document_text,.progress = TRUE)
 print('done')
-print(head(df_data))
+
