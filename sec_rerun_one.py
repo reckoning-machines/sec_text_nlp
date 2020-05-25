@@ -50,7 +50,7 @@ import time
 
 master_list_df = []
 list_tickers = df_tickers['Symbol']
-#list_tickers = ['MMM']
+list_tickers = ['GE']
 
 for ticker in list_tickers:
     py_write_log("working on..."+ticker)
@@ -101,6 +101,19 @@ for ticker in list_tickers:
             py_write_log(ticker+" has no data.")
     toc = time.perf_counter()
     py_write_log(f"Text processed in {toc - tic:0.4f} seconds")
+
+
+#if master_list_df:
+#    df_data = pd.concat(master_list_df)
+#    df_data.to_csv('df_data.csv')
+df_tickers = pd.read_csv('implementation_ticker_list.csv')
+master_list_df = []
+list_tickers = df_tickers['Symbol']
+
+for ticker in list_tickers:
+    str_score_file = "sec_data_folder/"+ticker+"_score.csv"
+    df = pd.read_csv(str_score_file)
+    master_list_df.append(df)
 
 if master_list_df:
     df_data = pd.concat(master_list_df)
