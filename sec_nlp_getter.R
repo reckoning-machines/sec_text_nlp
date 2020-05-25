@@ -27,7 +27,7 @@ get_filings_links <-function(str_ticker) {
     df_filings <- df_filings[df_filings$type == "10-K" | df_filings$type == "10-Q", ]
     df_filing_infos <- map_df(df_filings$href, filing_information)
     df_filings <- bind_cols(df_filings, df_filing_infos)
-    return(head(as_tibble(df_filings),16))
+    return(head(as_tibble(df_filings),20))
   }
 
 write_log <- function(str_text) {
@@ -51,14 +51,39 @@ write_log_csv <- function(df) {
 
 get_mdna_text <- function(str_href) {
   write_log(str_href)
-  #str_href <- 'https://www.sec.gov/Archives/edgar/data/1390777/000139077720000062/0001390777-20-000062-index.htm'
-  #default search
+
+  str_file_path <- ''
+  file_path = strsplit(str_href,'/')
+  for (i in 5:length(file_path[[1]])-1) {
+    str_file_path = paste0(str_file_path,"/",(file_path[[1]][i]))
+  }
+  str_file_path <- paste0(getwd(),"/",str_file_path)
+  dir.create(str_file_path,recursive = TRUE)
+  str_file_path
+  str_file_name <- ''
+  file_path = strsplit(str_href,'/')
+  for (i in 4:length(file_path[[1]])) {
+    str_file_name = paste0(str_file_name,"/",(file_path[[1]][i]))
+  }
+  str_file_name <- paste0(getwd(),str_file_name)
+  str_file_name <- gsub(".htm",".csv",str_file_name)
+  
   str_section = 'item 2|item 7'
   str_search = 'discussion'
 
-  df_filing_documents <- filing_documents(str_href) %>%
-    filter(!grepl('.pdf',href))
-
+  if (file.exists(str_file_name)) {  #add force equals true
+    write_log("filing documents from cache ...")
+    
+    df_filing_documents <- read_csv(str_file_name) 
+    df_filing_documents <- df_filing_documents %>% mutate_if(is.logical, as.character)
+  } else {
+    write_log("filing documents from sec ...")
+    
+    df_filing_documents <- filing_documents(str_href) %>%
+      filter(!grepl('.pdf',href)) %>%
+      write_csv(str_file_name)
+  }
+  
   str_doc_href <- df_filing_documents[df_filing_documents$type == "10-K" | df_filing_documents$type == "10-Q",]$href
   
   file_end <- gsub("https://www.sec.gov",'',str_doc_href)
@@ -103,7 +128,9 @@ get_mdna_text <- function(str_href) {
                        'EXECUTIVE OVER'='A summary of contractual obligations is included',
                        'EXECUTIVE OVERVIEW'='CONSOLIDATED RESULTS OF OPERATIONS',
                        'The following management discussion and analysis'='NON-GAAP FINANCIAL MEASURES',
-                       'CURRENT ECONOMIC CONDITIONS'='FORWARD-LOOKING STATEMENTS')
+                       'CURRENT ECONOMIC CONDITIONS'='FORWARD-LOOKING STATEMENTS',
+                       'Overview and Highlights'='Critical Accounting Policies and Estimates',
+                       'Financial Review - Results of Operations'='Unregistered Sales of Equity Securities and Use of Proceeds')
 
     #this would be case sensitive
     for (start_text in names(vec_start_end)) {
@@ -130,6 +157,10 @@ get_mdna_text <- function(str_href) {
         break
       }
 
+    }
+    if (length(i_start) == 0 || length(i_end) == 0) {
+      write_log("missing section for:")
+      write_log(str_href)
     }
 
   }
@@ -161,7 +192,7 @@ get_section_text <- function(str_href, str_section, str_search) {
 
 
 get_document_text <- function(str_ticker, force = FALSE) { #not using force yet
-#  str_ticker <- 'MS'
+  #str_ticker <- 'AAPL'
   start_time <- Sys.time()
 
   write_log(str_ticker)
@@ -170,11 +201,23 @@ get_document_text <- function(str_ticker, force = FALSE) { #not using force yet
 
   write_log("get filings links ...")
 
-  df_filings <- get_filings_links(str_ticker) %>%
-        mutate(ticker = str_ticker)
+  filings_csv <- paste0(str_write_name,"_filings.csv")
+  
+  if (file.exists(filings_csv)) {  #add force equals true
+    write_log("from cache ...")
+    
+    df_filings <- read_csv(filings_csv) 
+    df_filings <- df_filings %>% mutate_if(is.logical, as.character)
+    } else {
+    write_log("from sec ...")
+      
+    df_filings <- get_filings_links(str_ticker) %>%
+      mutate(ticker = str_ticker) %>%
+      write_csv(filings_csv)
+    }
 
   write_log_csv(df_filings)
-
+  
 #for debug
   i_test = nrow(df_filings) #for some reason this won't evaulate inside the if statement
   if (i_test == 0) {
@@ -210,7 +253,7 @@ get_document_text <- function(str_ticker, force = FALSE) { #not using force yet
 #long run.
 df_tickers <- read_csv('implementation_ticker_list.csv')
 #df_tickers <- df_tickers %>%
-#  filter(Symbol=='DE')
+#  filter(Symbol=='ABT')
 
 dir.create('sec_data_folder', showWarnings = FALSE)
 

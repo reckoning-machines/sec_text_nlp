@@ -50,6 +50,8 @@ import time
 
 master_list_df = []
 list_tickers = df_tickers['Symbol']
+#list_tickers = ['MMM']
+
 for ticker in list_tickers:
     py_write_log("working on..."+ticker)
     tic = time.perf_counter()
@@ -65,7 +67,7 @@ for ticker in list_tickers:
 
             df_out = df_discussion.parallel_apply(func_sentiment, axis=1)
             df_out.columns = ['ticker','section','type','period_date','neu','neg','pos','compound','keywords_found','text','num_rows']
-            df_out.to_csv("test.csv")
+            #df_out.to_csv("test.csv")
             if len(df_out) > 0:
 
                 df_out = df_out.groupby(['ticker','period_date','type']).sum().reset_index()
@@ -73,6 +75,11 @@ for ticker in list_tickers:
                 df_out['neu'] = df_out['neu']/df_out['num_rows']
                 df_out['pos'] = df_out['pos']/df_out['num_rows']
                 df_out['compound'] = df_out['compound']/df_out['num_rows']
+
+                df_error = df_out[df_out['compound'] == 0]
+                if not df_error.empty:
+                    py_write_log("zero values..."+ticker)
+                    df_error.to_csv('sec_nlp_errors.csv',mode = 'a')
 
                 df_out.drop(['keywords_found'],axis = 1)
                 df_out['compound_baseline'] = df_out['compound'] / df_out['compound'].mean()
