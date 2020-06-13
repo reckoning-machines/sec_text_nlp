@@ -50,7 +50,7 @@ import time
 
 master_list_df = []
 list_tickers = df_tickers['Symbol']
-list_tickers = ['GE']
+list_tickers = ['HOG']
 
 for ticker in list_tickers:
     py_write_log("working on..."+ticker)
@@ -112,8 +112,9 @@ list_tickers = df_tickers['Symbol']
 
 for ticker in list_tickers:
     str_score_file = "sec_data_folder/"+ticker+"_score.csv"
-    df = pd.read_csv(str_score_file)
-    master_list_df.append(df)
+    if path.exists(str_score_file):
+        df = pd.read_csv(str_score_file)
+        master_list_df.append(df)
 
 if master_list_df:
     df_data = pd.concat(master_list_df)
@@ -125,6 +126,8 @@ df['quarter_end'] = pd.to_datetime(df['period_date'])
 df['quarter_end'] = df.quarter_end.map(lambda x: x.strftime('%Y-%m-%d'))
 df.loc[df.quarter_end == '2017-04-01', 'quarter_end'] = '2017-03-31'
 df.loc[df.quarter_end == '2017-07-01', 'quarter_end'] = '2017-06-30'
+df.loc[df.quarter_end == '2018-04-01', 'quarter_end'] = '2018-03-31'
+df.loc[df.quarter_end == '2018-07-01', 'quarter_end'] = '2018-06-30'
 
 df['quarter_end'] = pd.to_datetime(df['quarter_end'])
 df['quarter_end'] = df['quarter_end'].dt.to_period('q').dt.end_time

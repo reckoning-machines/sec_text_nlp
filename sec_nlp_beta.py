@@ -1,56 +1,24 @@
-import os
 
 #os.system("git clone https://gist.github.com/dc7e60aa487430ea704a8cb3f2c5d6a6.git /tmp/colab_util_repo")
 #os.system("mv /tmp/colab_util_repo/colab_util.py colab_util.py")
 #os.system("rm -r /tmp/colab_util_repo")
 #os.system("mkdir sec_data_folder")
+import os
 import pandas as pd
-from sec_nlp_utils import *
 import os.path
 from os import path
+
+from sec_py_utils import *
 
 import numpy as np
 from pandarallel import pandarallel
 
-import time
-
 pandarallel.initialize()
 
-LOGFILE = 'sec_nlp_beta.log'
-f = open(LOGFILE, "w")
-t = time.localtime()
-current_time = time.strftime("%H:%M:%S", t)
-f.write(current_time+": process started")
-f.close()
-
-def py_write_log(str_text):
-    t = time.localtime()
-    current_time = time.strftime("%H:%M:%S", t)
-    print(str_text)
-    f = open(LOGFILE, "a")
-    f.write(current_time+": "+str_text)
-    f.close()
-    return
-
-def func_sentiment(row):
-    df = df_from_text(row['text']) #neg neu pos compound text keywords_found
-    neu = df.iloc[0]['neu']
-    pos = df.iloc[0]['pos']
-    neg = df.iloc[0]['neg']
-    num_rows = 1
-    compound = df.iloc[0]['compound']
-    text = df.iloc[0]['text']
-    keywords_found = df.iloc[0]['keywords_found']
-    return pd.Series([row['ticker'],row['section'],row['type'],row['period_date'],neu,pos,neg,compound,keywords_found,text,num_rows])
-
-df_tickers = pd.read_csv('implementation_ticker_list.csv')
-#df_tickers = df_tickers[df_tickers['Symbol']=='CAH']
-#read and process data into a single dataset.  add ticker along the way.
-import time
+df_tickers = pd.read_csv('test_ticker_list.csv')
 
 master_list_df = []
 list_tickers = df_tickers['Symbol']
-#list_tickers = ['MMM']
 
 for ticker in list_tickers:
     py_write_log("working on..."+ticker)
@@ -65,9 +33,9 @@ for ticker in list_tickers:
 
             df_discussion = df_text[df_text['section']=='discussion']
 
-            df_out = df_discussion.parallel_apply(func_sentiment, axis=1)
-            df_out.columns = ['ticker','section','type','period_date','neu','neg','pos','compound','keywords_found','text','num_rows']
-            #df_out.to_csv("test.csv")
+            df_out = df_discussion.parallel_apply(func_se ntiment, axis=1)
+            df_out.columns = ['ticker','section','type','period_date','neu','neg','pos','compound','text','num_rows']
+
             if len(df_out) > 0:
 
                 df_out = df_out.groupby(['ticker','period_date','type']).sum().reset_index()
@@ -81,7 +49,6 @@ for ticker in list_tickers:
                     py_write_log("zero values..."+ticker)
                     df_error.to_csv('sec_nlp_errors.csv',mode = 'a')
 
-                df_out.drop(['keywords_found'],axis = 1)
                 df_out['compound_baseline'] = df_out['compound'] / df_out['compound'].mean()
                 df_out['neg_baseline'] = df_out['neg'] / df_out['neg'].mean()
                 df_out['pos_baseline'] = df_out['pos'] / df_out['pos'].mean()
@@ -90,7 +57,7 @@ for ticker in list_tickers:
                 df_out['pos_bdiff'] = df_out['pos_baseline'].diff()
                 df_out['compound_zscore'] = (df_out['compound'] - df_out['compound'].mean())/df_out['compound'].std(ddof=0)
 
-                #always cache
+                #to iterate is human, to cache is divine
                 str_score_file = "sec_data_folder/"+ticker+"_score.csv"
                 df_out.to_csv(str_score_file)
 
@@ -106,16 +73,19 @@ if master_list_df:
     df_data = pd.concat(master_list_df)
     df_data.to_csv('df_data.csv')
 
-#print("done!")
 df = df_data[['period_date','ticker','compound_baseline']]
 df['quarter_end'] = pd.to_datetime(df['period_date'])
 df['quarter_end'] = df.quarter_end.map(lambda x: x.strftime('%Y-%m-%d'))
+
+#modify odd quarter ends
 df.loc[df.quarter_end == '2017-04-01', 'quarter_end'] = '2017-03-31'
 df.loc[df.quarter_end == '2017-07-01', 'quarter_end'] = '2017-06-30'
+df.loc[df.quarter_end == '2018-04-01', 'quarter_end'] = '2018-03-31'
+df.loc[df.quarter_end == '2018-07-01', 'quarter_end'] = '2018-06-30'
 
 df['quarter_end'] = pd.to_datetime(df['quarter_end'])
-df['quarter_end'] = df['quarter_end'].dt.to_period('q').dt.end_time
-df['quarter_end'] = df.quarter_end.map(lambda x: x.strftime('%Y-%m-%d'))
+df['quarter_end'] = df['quarter_end'].dt.to_period('q').dt.end_time #floor at end of quarter
+df['quarter_end'] = df.quarter_end.map(lambda x: x.strftime('%Y-%m-%d')) #format
 
 import numpy as np
 df_data_pivot = pd.pivot_table(df, values='compound_baseline', index=['quarter_end'],
