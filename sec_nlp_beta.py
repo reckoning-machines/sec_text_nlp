@@ -33,7 +33,9 @@ for ticker in list_tickers:
 
             df_discussion = df_text[df_text['section']=='discussion']
 
-            df_out = df_discussion.parallel_apply(func_se ntiment, axis=1)
+            df_out = df_discussion.parallel_apply(func_sentiment, axis=1)
+            #basic NLTK SENTIMENT ... build out here.
+
             df_out.columns = ['ticker','section','type','period_date','neu','neg','pos','compound','text','num_rows']
 
             if len(df_out) > 0:
