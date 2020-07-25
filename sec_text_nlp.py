@@ -1,4 +1,4 @@
-from sec_text_nlp import *
+from sec_nlp_utils import *
 
 class SECTextNLP(object):
     def __init__(self, ticker):
