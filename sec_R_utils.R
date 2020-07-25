@@ -116,11 +116,11 @@ get_mdna_text <- function(str_ticker) {
         write_log(paste0('trying ',start_text))
         write_log(paste0('to ',end_text))
       
-        i_start = as.integer(which(grepl(start_text, doc$text))) 
+        i_start = as.integer(which(grepl(start_text, df_txt$text))) 
         if (length(i_start) > 1) { #handle table of contents duplicates
           i_start = i_start[2]
         }
-        i_end = as.integer(which(grepl(end_text, doc$text)))
+        i_end = as.integer(which(grepl(end_text, df_txt$text)))
         if (length(i_end) > 1) {
           i_end = i_end[2]
         }
@@ -131,7 +131,7 @@ get_mdna_text <- function(str_ticker) {
         if (length(i_start) != 0 & length(i_end) != 0) {
           if (i_start < i_end) {        
             print(paste0('istart is:',i_start,' iend is:',i_end))
-            df_txt = doc[i_start:i_end,]
+            df_txt = df_txt[i_start:i_end,]
             break
           }
         }
