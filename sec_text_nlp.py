@@ -1,5 +1,4 @@
-
-from sec_nlp_utils import *
+from sec_text_nlp import *
 
 class SECTextNLP(object):
     def __init__(self, ticker):
@@ -74,6 +73,28 @@ class SECTextNLP(object):
             self.df_mdna = pd.concat(list_mdna)
         return
     
+    def get_riskfactors_text(self):    
+        list_rf = []
+        for href in self.list_href:
+            file_name = href.replace("https://www.sec.gov",str(LOCAL_PATH))
+            file_name_list = file_name.split('/')
+            fil_path = ''
+            for s in file_name_list[:-1]:
+                if len(s)>0:
+                    file_path = file_path+"/"+s
+            file_path = file_path + "/"
+            only_files = [f for f in listdir(file_path) if isfile(join(file_path, f))]
+            for f in only_files:
+                if 'riskfactors' in f:
+                    df_rf = pd.read_csv(file_path + f)
+                    df_rf['file']=f
+                    df_rf['href']=href
+                    list_rf.append(df_rf)
+        if len(list_rf) > 0:
+            self.df_riskfactors = pd.concat(list_rf)
+        return
+    
+
     def get_full_text(self):
         list_text = []
         for href in self.list_href:
