@@ -89,19 +89,22 @@ get_mdna_text <- function(str_ticker) {
   str_search = 'discussion'
   
   df_filing_documents <- df_filing_documents[df_filing_documents$type...7 == "10-K" | df_filing_documents$type...7 == "10-Q",]
-  
+  print(df_filing_documents$href)
   #a_row = 1
   for (a_row in 1:nrow(df_filing_documents)) {
     #df_filing_documents[a_row,'href']
     str_doc_href <- df_filing_documents[a_row, "href"]
+
     file_end <- gsub("https://www.sec.gov",'',str_doc_href)
-    file_name = paste0(getwd(),file_end)
-    file_name = gsub('.htm','.csv',file_name)
-    
+    file_end <- strsplit(file_end,'/')[[1]][1:6]
+    file_end <- paste(file_end, collapse='/' )
+    file_end = paste0(getwd(),'/',file_end)
+    file.ls <- list.files(path=file_end,pattern="sentences")
+    file_name = paste0(file_end,'/',file.ls)
+
     result <- try({
       df_txt <- read_csv(file_name)
     }, silent = TRUE)
-    
     df_txt <- df_txt[grepl(str_section, df_txt$item.name, ignore.case = TRUE) & grepl(str_search, df_txt$item.name, ignore.case = TRUE), ] # only discussion for now
     i_start = ''
     i_end = ''
@@ -140,13 +143,12 @@ get_mdna_text <- function(str_ticker) {
     
     if (length(i_start) == 0 || length(i_end) == 0) {
         write_log("missing section for:")
-        write_log(str_href)
+        write_log(str_doc_href)
     }
     
-    mdna_file_name <- gsub('.csv','_mdna.csv',file_name)
-    
+    mdna_file_name <- gsub('_sentences.csv','_mdna.csv',file_name)
     df_txt <- as_tibble(df_txt) %>%
-      unnest_tokens(sentence_text,sentence_text,token='sentences') %>%
+#      unnest_tokens(sentence_text,sentence_text,token='sentences') %>%
       mutate(section = str_search) %>%
       write_csv(mdna_file_name)
     }
@@ -175,7 +177,6 @@ get_ticker_text <- function(str_ticker, force = FALSE) { #not using force yet
 #      write_csv(filings_csv) 
   
   write_log_csv(df_filings)
-  
   df_filings %>%
     rowwise() %>%
     mutate(nest_discussion = map(.x = href, .f = get_documents_text))
@@ -186,9 +187,10 @@ get_ticker_text <- function(str_ticker, force = FALSE) { #not using force yet
 }
 
 get_string_file_name <- function(str_href) {
-  #str_href <- 'https://www.sec.gov/Archives/edgar/data/4962/000000496220000054/0000004962-20-000054-index.htm'
+  #str_href <- 'https://www.sec.gov/Archives/edgar/data/4962/000000496220000079/0000004962-20-000079-index.htm'
+  #str_href <- "https://www.sec.gov/Archives/edgar/data/4962/000000496220000079/axp-20200630.htm"
+  file_path <- strsplit(str_href,'/')
   str_file_path <- ''
-  file_path = strsplit(str_href,'/')
   for (i in 5:length(file_path[[1]])-1) {
     str_file_path = paste0(str_file_path,"/",(file_path[[1]][i]))
   }
@@ -251,15 +253,12 @@ get_documents_text <- function(str_href) {
   
   df_filing_documents <- filing_documents(str_href)
   str_doc_href <- df_filing_documents[df_filing_documents$type == "10-K" | df_filing_documents$type == "10-Q",]$href
-  
   doc <- parse_filing(str_doc_href)
   
   df_txt <- doc
   
-  file_doc = get_string_file_name(str_href)
-#  file_doc <- gsub("https://www.sec.gov",'',str_href)
-#  file_doc <- paste0(getwd(),file_doc)
-  file_doc <- gsub('.htm','_sentences.csv',file_doc)
+  file_doc = get_string_file_name(str_doc_href)
+  file_doc <- gsub('.csv','_sentences.csv',file_doc)
   
   df_txt <- as_tibble(df_txt) %>%
     unnest_tokens(sentence_text,text,token='sentences') %>%
@@ -279,20 +278,22 @@ get_riskfactors_text <- function(str_ticker) {
   
   df_filing_documents <- df_filing_documents[df_filing_documents$type...7 == "10-K",]
   
-  df_filing_documents
+  #df_filing_documents
   
   #a_row = 1
   for (a_row in 1:nrow(df_filing_documents)) {
     #df_filing_documents[a_row,'href']
     str_doc_href <- df_filing_documents[a_row, "href"]
     file_end <- gsub("https://www.sec.gov",'',str_doc_href)
-    file_name = paste0(getwd(),file_end)
-    file_name = gsub('.htm','.csv',file_name)
+    file_end <- strsplit(file_end,'/')[[1]][1:6]
+    file_end <- paste(file_end, collapse='/' )
+    file_end = paste0(getwd(),'/',file_end)
+    file.ls <- list.files(path=file_end,pattern="sentences")
+    file_name = paste0(file_end,'/',file.ls)
     
     result <- try({
       df_txt <- read_csv(file_name)
     }, silent = TRUE)
-    
     #df_txt %>%
     #  group_by(item.name) %>%
     #  summarise(n=n())
@@ -305,9 +306,8 @@ get_riskfactors_text <- function(str_ticker) {
       return(NA)
     }
     
-    rf_file_name <- gsub('.csv','_riskfactors.csv',file_name)
+    rf_file_name <- gsub('_sentences.csv','_riskfactors.csv',file_name)
     df_txt <- as_tibble(df_txt) %>%
-      unnest_tokens(sentence_text,sentence_text,token='sentences') %>%
       mutate(section = str_search) %>%
       write_csv(rf_file_name)
   }

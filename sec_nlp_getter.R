@@ -33,7 +33,9 @@ future::plan(multiprocess)
 #tell us what we're doing
 
 
-#get_ticker_text("AXP")
+get_ticker_text("AXP")
+get_mdna_text('AXP')
+get_riskfactors_text('AXP')
 #map get_document_text from sec_R_utils.R across the vector Symbol in the df_tickers dataframe
 #show progress bar, thank you Davis 
 result <- future_map_dfr(df_tickers$Symbol, get_ticker_text,.progress = TRUE) #takes a few minutes
