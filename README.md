@@ -1,2 +1,2 @@
 # sec_getter
- work in progress migrating from colab to local repo.
+use sample_workflow ... uncomment and run as you wish ... for an idea of the use of the objects.
