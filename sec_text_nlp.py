@@ -9,6 +9,65 @@ class SECTextNLP(object):
         self.get_full_text()
         self.get_mdna_text()
         self.get_riskfactors_text()
+        self.get_file_path()
+
+    def year_month(self,df,col):
+      df[col] = pd.to_datetime(df[col])
+      df[col+'_year_month'] = df[col].dt.strftime('%Y-%m')
+      return df
+
+    def get_file_path(self):
+        z = list(self.df_file_index['local_file_name'])
+        file_dir = z[0].split('/')
+        file_dir = file_dir[1:len(file_dir)-2]
+        self.file_path = ''
+        for item in file_dir:
+            if len(item)>0:
+                self.file_path = self.file_path+"/" + item + "/"
+        return self.file_path
+
+    def save_to_csv(self,df,file_name):
+        file_name = self.file_path+file_name+'.csv'
+        df.to_csv(file_name)
+        
+    def read_from_csv(self,csv_file_name):
+        import os.path
+        from os import path
+        list_out = []
+        for href in self.list_href:
+            file_name = href.replace("https://www.sec.gov",str(LOCAL_PATH))
+            file_name_list = file_name.split('/')
+            file_path = ''
+            for s in file_name_list[:-2]:
+                if len(s)>0:
+                    file_path = file_path+"/"+s
+            file_path = file_path + "/"
+            if path.isdir(file_path):
+                file_name = file_path+csv_file_name+'.csv'
+                df = pd.read_csv(file_name)
+                if df is not None:
+                    list_out.append(df)
+        if len(list_out):
+            return pd.concat(list_out)
+        return df
+
+    def get_list_sentiment(self,df,search_list,col_name):
+        col_name_long = col_name + "_long"
+        df = self.match_keywords(self.NLTK_sentiment(df),search_list,col_name)
+        df['id'] = np.arange(len(df))
+        if col_name in df.columns:
+            df[col_name] = df[col_name].str.replace('\[','')
+            df[col_name] = df[col_name].str.replace('\]','')
+            new_df = pd.DataFrame(df[col_name].str.split(',').tolist(), index=df['id']).stack()
+            new_df = new_df.reset_index([0, 'id'])
+            new_df.columns = ['id',col_name_long]
+            new_df[col_name_long] = new_df[col_name_long].apply(lambda x: ', '.join([str(i) for i in x]))
+            new_df = pd.merge(df,new_df,how='inner',left_on='id',right_on='id')
+            new_df = pd.merge(new_df,self.df_file_index,how = 'inner',left_on='href',right_on='href')[['ticker','filing_date',col_name_long,'compound']]
+            new_df['filing_date'] = pd.to_datetime(new_df['filing_date'])
+            new_df[col_name_long] = new_df[col_name_long].str.replace('\'','')
+            return new_df
+        return None
 
     def get_files_list(self):
         self.df_file_index = pd.read_csv('file_index.csv', error_bad_lines=False) #error handle
@@ -65,13 +124,18 @@ class SECTextNLP(object):
                 if len(s)>0:
                     file_path = file_path+"/"+s
             file_path = file_path + "/"
-            only_files = [f for f in listdir(file_path) if isfile(join(file_path, f))]
-            for f in only_files:
-                if 'mdna' in f:
-                    df_mdna = pd.read_csv(file_path + f)
-                    df_mdna['file']=f
-                    df_mdna['href']=href
-                    list_mdna.append(df_mdna)
+            import os.path
+            from os import path
+            if path.isdir(file_path):
+                only_files = [f for f in listdir(file_path) if isfile(join(file_path, f))]
+                for f in only_files:
+                    if 'mdna' in f:
+                        df_mdna = pd.read_csv(file_path + f)
+                        df_mdna['file']=f
+                        df_mdna['href']=href
+                        list_mdna.append(df_mdna)
+            else:
+                print(file_path+" error.")
         if len(list_mdna) > 0:
             self.df_mdna = pd.concat(list_mdna)
         return
@@ -86,13 +150,16 @@ class SECTextNLP(object):
                 if len(s)>0:
                     file_path = file_path+"/"+s
             file_path = file_path + "/"
-            only_files = [f for f in listdir(file_path) if isfile(join(file_path, f))]
-            for f in only_files:
-                if 'riskfactors' in f:
-                    df_rf = pd.read_csv(file_path + f)
-                    df_rf['file']=f
-                    df_rf['href']=href
-                    list_rf.append(df_rf)
+            try:
+                only_files = [f for f in listdir(file_path) if isfile(join(file_path, f))]
+                for f in only_files:
+                    if 'riskfactors' in f:
+                        df_rf = pd.read_csv(file_path + f)
+                        df_rf['file']=f
+                        df_rf['href']=href
+                        list_rf.append(df_rf)
+            except:
+                print(file_path+" error.")
         if len(list_rf) > 0:
             self.df_riskfactors = pd.concat(list_rf)
         return
@@ -107,13 +174,16 @@ class SECTextNLP(object):
                 if len(s)>0:
                     file_path = file_path+"/"+s
             file_path = file_path + "/"
-            only_files = [f for f in listdir(file_path) if isfile(join(file_path, f))]
-            for f in only_files:
-                if 'sentences' in f:
-                    df = pd.read_csv(file_path + f)
-                    df['file']=f
-                    df['href']=href
-                    list_text.append(df)
+            try:
+                only_files = [f for f in listdir(file_path) if isfile(join(file_path, f))]
+                for f in only_files:
+                    if 'sentences' in f:
+                        df = pd.read_csv(file_path + f)
+                        df['file']=f
+                        df['href']=href
+                        list_text.append(df)
+            except:
+                print(file_path+" error.")
         self.df_text = pd.concat(list_text)
         return 
 

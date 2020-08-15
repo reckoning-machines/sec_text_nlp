@@ -26,14 +26,19 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from nltk import tokenize
+import os.path
+from os import path
 
 FILE_INDEX = 'file_index.csv'
+
 SERVICES_CSV = 'wiki_sp500_services.csv'
 PRODUCTS_CSV = 'wiki_sp500_products.csv'
 PEOPLE_CSV = 'wiki_sp500_people.csv'
+
 FNCL_TERMS_CSV = 'fncl_terms.csv'
 CORP_TERMS_CSV = 'corp_terms.csv'
 LEGAL_TERMS_CSV = 'legal_terms.csv'
+
 LOCAL_PATH = pathlib.Path().absolute()
 
 BUSINESS_SEGMENT_LIST = ['business segment results','business segment','reportable operating segments']
@@ -71,6 +76,11 @@ path = ''
 FIND_WORDS = ['covid',
               'guidance',
               'outlook']
+
+def year_month(df,col):
+      df[col] = pd.to_datetime(df[col])
+      df[col+'_YEAR_MONTH'] = df[col].dt.strftime('%Y-%m')
+      return df
 
 class wiki_sp500(object):
     def __init__(self):
