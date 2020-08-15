@@ -1,2 +1,2 @@
 # sec_getter
-use sample_workflow ... uncomment and run as you wish ... for an idea of the use of the objects.
+please see read_me.pdf and read_me.ipynb
