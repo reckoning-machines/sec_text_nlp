@@ -63,7 +63,7 @@ class SECTextNLP(object):
             new_df.columns = ['id',col_name_long]
             new_df[col_name_long] = new_df[col_name_long].apply(lambda x: ', '.join([str(i) for i in x]))
             new_df = pd.merge(df,new_df,how='inner',left_on='id',right_on='id')
-            new_df = pd.merge(new_df,self.df_file_index,how = 'inner',left_on='href',right_on='href')[['ticker','filing_date','sentence_text','col_name_long,'compound']]
+            new_df = pd.merge(new_df,self.df_file_index,how = 'inner',left_on='href',right_on='href')[['ticker','filing_date','sentence_text',col_name_long,'compound']]
             new_df['filing_date'] = pd.to_datetime(new_df['filing_date'])
             new_df[col_name_long] = new_df[col_name_long].str.replace('\'','')
             return new_df
