@@ -12,7 +12,7 @@ for ticker in list_of_tickers:
     df = stn.get_list_sentiment(stn.df_text,GLOBAL_SEARCH_LIST,'global_macro')
     if df is not None:
         stn.save_to_csv(df,'global_macro')
-    
+        
     list_segments = stn.get_noun_phrases_around_topic(BUSINESS_SEGMENT_LIST)
     if list_segments is not None:
         df = stn.get_list_sentiment(stn.df_text,list_segments,'segments')
@@ -30,7 +30,7 @@ for ticker in list_of_tickers:
         if df is not None:
             stn.save_to_csv(df,'products_sentiment')
     
-    list_trademarks = stn.get_words_with_trademark(stn.df_text)
+    list_trademarks = stn.get_words_with_trademark(stn.df_text) # this needs to be better formatted 
     if list_trademarks is not None:
         df = stn.get_list_sentiment(stn.df_text,list_trademarks,'trademarks')
         if df is not None:
