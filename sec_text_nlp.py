@@ -49,24 +49,21 @@ class SECTextNLP(object):
                     list_out.append(df)
         if len(list_out):
             return pd.concat(list_out)
-        return df
+        return None
 
     def get_list_sentiment(self,df,search_list,col_name):
         col_name_long = col_name + "_long"
-        df = self.match_keywords(self.NLTK_sentiment(df),search_list,col_name)
-        df['id'] = np.arange(len(df))
-        if col_name in df.columns:
-            df[col_name] = df[col_name].str.replace('\[','')
-            df[col_name] = df[col_name].str.replace('\]','')
-            new_df = pd.DataFrame(df[col_name].str.split(',').tolist(), index=df['id']).stack()
-            new_df = new_df.reset_index([0, 'id'])
-            new_df.columns = ['id',col_name_long]
-            new_df[col_name_long] = new_df[col_name_long].apply(lambda x: ', '.join([str(i) for i in x]))
-            new_df = pd.merge(df,new_df,how='inner',left_on='id',right_on='id')
-            new_df = pd.merge(new_df,self.df_file_index,how = 'inner',left_on='href',right_on='href')[['ticker','filing_date','sentence_text',col_name_long,'compound']]
-            new_df['filing_date'] = pd.to_datetime(new_df['filing_date'])
-            new_df[col_name_long] = new_df[col_name_long].str.replace('\'','')
-            return new_df
+        df = self.match_keywords(df,search_list,col_name)
+        if df is not None:
+            df['sentence_text'] = df['sentence_text'].astype(str)
+            df = self.NLTK_sentiment(df)
+            df['id'] = np.arange(len(df))
+            df = pd.merge(df,self.df_file_index,how='inner',left_on = 'href',right_on='href')
+            df = df.groupby(['href','sentence_id',col_name]).first().reset_index()
+            df = df.drop(columns=['size','description','documents','effective_date','bytes','local_file_name'])
+            df = self.year_month(df,'period_date')
+            df = self.year_month(df,'filing_date')
+            return df
         return None
 
     def get_files_list(self):
@@ -97,22 +94,28 @@ class SECTextNLP(object):
             df.at[i,'pattern_subjectivity'] = i_subjectivity
         return df
 
-    def match_keywords(self,df,keyword_list,keyword_list_name,return_list = 'wide'): #return match list of keyword, sentence id, one to many
+    def match_keywords(self,df,keyword_list,keyword_list_name): #return match list of keyword, sentence id, one to many
         # allow for ability to explode into long form on a switch in the parameters
         # return wide or return long
-
+        list_out = []
         for i,row in df.iterrows():
             sentence = row['sentence_text']
             sentence = filter_stopwords(sentence)
             list_found = check_if_list_found_in_text(sentence,keyword_list)
-            if len(list_found) >= 1:
-                num_found = len(list_found)
-                try:
-                    df.at[i,keyword_list_name] = str(list_found)
-                    df.at[i,keyword_list_name+'_number'] = num_found
-                except:
-                    print("Error: "+str(list_found)+":"+str(i))
-        return df
+            list_found = list(set(list_found))
+            num_found = len(list_found)
+            for w in list_found:
+                r = row
+                r['sentence_id']=i
+                r[keyword_list_name] = w
+                r[keyword_list_name+'_number'] = num_found
+                df = pd.DataFrame(r)
+                list_out.append(df.T)
+        if len(list_out):
+            df = pd.concat(list_out)
+            return df
+        return None
+        
 
     def get_mdna_text(self):
         list_mdna = []
