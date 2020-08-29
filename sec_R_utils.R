@@ -144,7 +144,7 @@ get_mdna_text <- function(str_ticker) {
     }
     
     if (length(i_start) == 0 || length(i_end) == 0) {
-        write_log("missing section for:")
+        write_log(paste0("missing section for:",str_ticker," ",str_doc_href))
         write_log(str_doc_href)
     }
     
