@@ -79,15 +79,57 @@ class SECTextNLP(object):
         sid = SentimentIntensityAnalyzer()
         for i,row in df.iterrows():
             sentence = row['sentence_text']
+            sentence = sentence.encode("ascii", errors="ignore").decode()
             sentence = filter_stopwords(sentence)
             ss = sid.polarity_scores(sentence)
             for ss_key in ss.keys():
                 df.at[i,ss_key] = ss[ss_key]
         return df
 
+    def textblob_sentiment(self,df): #score each sentence
+        #last if many sentences in "sentence"        
+        for i,row in df.iterrows():
+            sentence = row['sentence_text']
+            sentence = sentence.encode("ascii", errors="ignore").decode()
+            sentence = filter_stopwords(sentence)
+            blob = TextBlob(sentence)
+            for sentence in blob.sentences:
+                df.at[i,'sentiment'] = sentence.sentiment.polarity
+        return df
+
+    def textblob_nouns(self,df): #score each sentence
+        list_out = []
+        #z = df.shape[0]
+        #zcount = 1
+        for i,row in df.iterrows():
+            #print(str(zcount/z))
+            #zcount += 1
+            
+            sentence = row['sentence_text']
+            sentence = sentence.encode("ascii", errors="ignore").decode()
+            blob = TextBlob(sentence)
+            list_nouns = list(blob.noun_phrases)
+            list_filter = list(pd.read_csv(FNCL_TERMS_CSV,header=None)[0])
+            list_main = np.setdiff1d(list_nouns,list_filter)
+            list_filter = list(pd.read_csv(CORP_TERMS_CSV,header=None)[0])
+            list_main = np.setdiff1d(list_main,list_filter)
+            list_filter = list(pd.read_csv(LEGAL_TERMS_CSV,header=None)[0])
+            list_main = np.setdiff1d(list_main,list_filter)
+            list_filter = TERMS_FILTER_LIST
+            list_main = np.setdiff1d(list_main,list_filter)
+
+            for noun in list_main:
+                r = row
+                r['noun'] = noun
+                list_out.append(pd.DataFrame(r).T)
+        if len(list_out):
+            return pd.concat(list_out)
+        return None
+
     def pattern_sentiment(self,df): #score each sentence
         for i,row in df.iterrows():
             sentence = row['sentence_text']
+            sentence = sentence.encode("ascii", errors="ignore").decode()
             sentence = filter_stopwords(sentence)
             i_sentiment,i_subjectivity = sentiment(sentence)
             df.at[i,'pattern_sentiment'] = i_sentiment

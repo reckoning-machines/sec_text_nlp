@@ -101,7 +101,9 @@ get_mdna_text <- function(str_ticker) {
     file_end = paste0(getwd(),'/',file_end)
     file.ls <- list.files(path=file_end,pattern="sentences")
     file_name = paste0(file_end,'/',file.ls)
-
+    
+    print(file_name)
+    
     result <- try({
       df_txt <- read_csv(file_name)
     }, silent = TRUE)
@@ -177,10 +179,25 @@ get_ticker_text <- function(str_ticker, force = FALSE) { #not using force yet
 #      write_csv(filings_csv) 
   
   write_log_csv(df_filings)
+  
+  #out <- tryCatch({
   df_filings %>%
     rowwise() %>%
-    mutate(nest_discussion = map(.x = href, .f = get_documents_text))
-  
+    mutate(nest_discussion = list(map2_dfr(href,ticker,get_documents_text)))
+  #},
+  #error=function(cond) {
+  #   message(cond)
+  #   return(NA)
+  # },
+  # warning=function(cond) {
+  #   message(cond)
+  #   return(NULL)
+  # },
+  # finally={
+  #   message(paste("Processed ticker:", str_ticker))
+  # }
+  # )    
+  # 
   end_time <- Sys.time()
   write_log(end_time - start_time)
   
@@ -206,69 +223,84 @@ get_string_file_name <- function(str_href) {
   return(str_file_name)
 }
 
-get_document_text <- function(str_ticker, force = FALSE) { #not using force yet
-  start_time <- Sys.time()
-  
-  write_log(str_ticker)
-  
-  #str_write_name <- paste0('sec_data_folder/',str_ticker)
-  
-  write_log("get filings links ...")
-  
-  filings_csv <- paste0(str_write_name,"_filings.csv")
-  
-  if (file.exists(filings_csv)) {  #add force equals true
-    write_log("from cache ...")
-    
-    df_filings <- read_csv(filings_csv,col_types = cols()) 
-    df_filings <- df_filings %>% mutate_if(is.logical, as.character)
-  } else {
-    write_log("from sec ...")
-    
-    df_filings <- get_filings_links(str_ticker) %>%
-      mutate(ticker = str_ticker) %>%
-      write_csv(filings_csv)
-  }
-  
-  write_log_csv(df_filings)
-  
-  #for debug
-  i_test = nrow(df_filings) #for some reason this won't evaulate inside the if statement
-  if (i_test == 0) {
-    return(NULL)
-  }
-  
+# get_document_text <- function(str_ticker, force = FALSE) { #not using force yet
+#   start_time <- Sys.time()
+#   
+#   write_log(str_ticker)
+#   
+#   #str_write_name <- paste0('sec_data_folder/',str_ticker)
+#   
+#   write_log("get filings links ...")
+#   
+#   filings_csv <- paste0(str_write_name,"_filings.csv")
+#   
+#   if (file.exists(filings_csv)) {  #add force equals true
+#     write_log("from cache ...")
+#     
+#     df_filings <- read_csv(filings_csv,col_types = cols()) 
+#     df_filings <- df_filings %>% mutate_if(is.logical, as.character)
+#   } else {
+#     write_log("from sec ...")
+#     
+#     df_filings <- get_filings_links(str_ticker) %>%
+#       mutate(ticker = str_ticker) %>%
+#       write_csv(filings_csv)
+#   }
+#   
+#   write_log_csv(df_filings)
+#   
+#   #for debug
+#   i_test = nrow(df_filings) #for some reason this won't evaulate inside the if statement
+#   if (i_test == 0) {
+#     return(NULL)
+#   }
+#   
+# 
+#   end_time <- Sys.time()
+#   
+#   write_log(end_time - start_time)
+#   
+#   return(df_data)
+# }
 
-  end_time <- Sys.time()
-  
-  write_log(end_time - start_time)
-  
-  return(df_data)
-}
-
-get_documents_text <- function(str_href) {
+get_documents_text <- function(str_href,str_ticker) {
   #str_href = "https://www.sec.gov/Archives/edgar/data/4962/000000496220000079/0000004962-20-000079-index.htm"
 
   write_log(str_href)
+
   
   df_filing_documents <- filing_documents(str_href)
   str_doc_href <- df_filing_documents[df_filing_documents$type == "10-K" | df_filing_documents$type == "10-Q",]$href
+  file_doc = get_string_file_name(str_doc_href)  
+  
+  html_doc <- gsub('.csv','.html',file_doc)
+  download.file(str_doc_href, html_doc)
+  
   doc <- parse_filing(str_doc_href)
   
   df_txt <- doc
   
   file_doc = get_string_file_name(str_doc_href)
-  file_doc <- gsub('.csv','_sentences.csv',file_doc)
   
+  #full_doc <- gsub('.csv','_document.csv',file_doc)
+  #df_txt <- as_tibble(df_txt) %>%
+  #  mutate(href = str_href) %>%
+  #  mutate(ticker = str_ticker) %>%
+  #  write_csv(full_doc)
+  
+  file_doc <- gsub('.csv','_sentences.csv',file_doc)
   df_txt <- as_tibble(df_txt) %>%
     unnest_tokens(sentence_text,text,token='sentences') %>%
+    mutate(sentence_id = row_number()) %>%
+    mutate(href = str_href) %>%
+    mutate(ticker = str_ticker) %>%
     write_csv(file_doc)
   
   return(df_txt)
 }
 
 get_riskfactors_text <- function(str_ticker) {
-  #str_ticker <- 'AXP'
+  str_ticker <- 'AXP'
   
   df_filing_documents <- read_csv('file_index.csv') %>%
     filter(ticker == str_ticker)
@@ -301,7 +333,7 @@ get_riskfactors_text <- function(str_ticker) {
     df_txt <- df_txt[grepl(str_section, df_txt$item.name, ignore.case = TRUE), ] # only discussion for now
     
     if (nrow(df_txt) == 0) {
-      write_log("missing risk factor section for:")
+      write_log(paste0("missing risk factor section for:",str_ticker," ",str_doc_href))
       write_log(str_doc_href)
       return(NA)
     }

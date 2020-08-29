@@ -77,11 +77,6 @@ FIND_WORDS = ['covid',
               'guidance',
               'outlook']
 
-def year_month(df,col):
-      df[col] = pd.to_datetime(df[col])
-      df[col+'_YEAR_MONTH'] = df[col].dt.strftime('%Y-%m')
-      return df
-
 class wiki_sp500(object):
     def __init__(self):
         self.df_services,self.df_products,self.df_people = self.get_wiki_sp500(force = False)
@@ -175,7 +170,21 @@ def sentiment_from_text(sentence):
   df['keywords_found'] = num_found
   return pd.concat(dict_sentiment)
 
-  ###
+def year_month(self,df,col):
+    df[col] = pd.to_datetime(df[col])
+    df[col+'_YEAR_MONTH'] = df[col].dt.strftime('%Y-%m')
+    return df
+
+def quarter(self,df,col):
+    df[col] = pd.to_datetime(df[col])
+    df[col+'_QUARTER'] = df[col].dt.quarter
+    return df
+
+def month(self,df,col):
+    df[col] = pd.to_datetime(df[col])
+    df[col+'_MONTH'] = df[col].dt.strftime('%m')
+    return df
+
 def func_sentiment(row):
     df = df_from_text(row['text']) #neg neu pos compound text keywords_found
     neu = df.iloc[0]['neu']
