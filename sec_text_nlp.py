@@ -44,7 +44,7 @@ class SECTextNLP(object):
             file_path = file_path + "/"
             if path.isdir(file_path):
                 file_name = file_path+csv_file_name+'.csv'
-                df = pd.read_csv(file_name)
+                df = pd.read_csv(file_name, error_bad_lines=False)
                 if df is not None:
                     list_out.append(df)
         if len(list_out):
@@ -175,7 +175,7 @@ class SECTextNLP(object):
                 only_files = [f for f in listdir(file_path) if isfile(join(file_path, f))]
                 for f in only_files:
                     if 'mdna' in f:
-                        df_mdna = pd.read_csv(file_path + f)
+                        df_mdna = pd.read_csv(file_path + f, error_bad_lines=False)
                         df_mdna['file']=f
                         df_mdna['href']=href
                         list_mdna.append(df_mdna)
@@ -199,7 +199,7 @@ class SECTextNLP(object):
                 only_files = [f for f in listdir(file_path) if isfile(join(file_path, f))]
                 for f in only_files:
                     if 'riskfactors' in f:
-                        df_rf = pd.read_csv(file_path + f)
+                        df_rf = pd.read_csv(file_path + f, error_bad_lines=False)
                         df_rf['file']=f
                         df_rf['href']=href
                         list_rf.append(df_rf)
@@ -223,12 +223,13 @@ class SECTextNLP(object):
                 only_files = [f for f in listdir(file_path) if isfile(join(file_path, f))]
                 for f in only_files:
                     if 'sentences' in f:
-                        df = pd.read_csv(file_path + f)
+                        df = pd.read_csv(file_path + f, error_bad_lines=False)
                         df['file']=f
                         df['href']=href
                         list_text.append(df)
             except:
                 print(file_path+" error.")
+                return None
         self.df_text = pd.concat(list_text)
         return 
 
