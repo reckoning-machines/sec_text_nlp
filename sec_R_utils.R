@@ -82,14 +82,14 @@ write_log_csv <- function(df) {
 get_mdna_text <- function(str_ticker) {
   #str_ticker <- 'AXP'
   
-  df_filing_documents <- read_csv('file_index.csv') %>%
+  df_filing_documents <- read_csv('file_index.csv', col_types = cols()) %>%
     filter(ticker == str_ticker)
 
   str_section = 'item 2|item 7'
   str_search = 'discussion'
   
   df_filing_documents <- df_filing_documents[df_filing_documents$type...7 == "10-K" | df_filing_documents$type...7 == "10-Q",]
-  print(df_filing_documents$href)
+  #print(df_filing_documents$href)
   #a_row = 1
   for (a_row in 1:nrow(df_filing_documents)) {
     #df_filing_documents[a_row,'href']
@@ -102,11 +102,15 @@ get_mdna_text <- function(str_ticker) {
     file.ls <- list.files(path=file_end,pattern="sentences")
     file_name = paste0(file_end,'/',file.ls)
     
-    print(file_name)
+    #print(file_name)
+    if (file.exists(file_name)) {    
+      df_txt <- read_csv(file_name, col_types = cols())
+    }
     
-    result <- try({
-      df_txt <- read_csv(file_name)
-    }, silent = TRUE)
+    if (!exists('df_txt')) {
+      return(NULL)
+    }
+    
     df_txt <- df_txt[grepl(str_section, df_txt$item.name, ignore.case = TRUE) & grepl(str_search, df_txt$item.name, ignore.case = TRUE), ] # only discussion for now
     i_start = ''
     i_end = ''
@@ -118,8 +122,8 @@ get_mdna_text <- function(str_ticker) {
         start_text <- DF_FILTER_LIST[b_row, "start_text"]
         end_text <- DF_FILTER_LIST[b_row, "end_text"]
       
-        write_log(paste0('trying ',start_text))
-        write_log(paste0('to ',end_text))
+        #write_log(paste0('trying ',start_text))
+        #write_log(paste0('to ',end_text))
       
         i_start = as.integer(which(grepl(start_text, df_txt$text))) 
         if (length(i_start) > 1) { #handle table of contents duplicates
@@ -130,12 +134,12 @@ get_mdna_text <- function(str_ticker) {
           i_end = i_end[2]
         }
       
-        write_log(i_start)
-        write_log(i_end)
+        #write_log(i_start)
+        #write_log(i_end)
       
         if (length(i_start) != 0 & length(i_end) != 0) {
           if (i_start < i_end) {        
-            print(paste0('istart is:',i_start,' iend is:',i_end))
+            #print(paste0('istart is:',i_start,' iend is:',i_end))
             df_txt = df_txt[i_start:i_end,]
             break
           }
@@ -144,15 +148,18 @@ get_mdna_text <- function(str_ticker) {
     }
     
     if (length(i_start) == 0 || length(i_end) == 0) {
-        write_log(paste0("missing section for:",str_ticker," ",str_doc_href))
-        write_log(str_doc_href)
+        print(paste0("missing MDNA section for:",str_ticker," ",str_doc_href))
+        #write_log(str_doc_href)
+        return(NULL) 
     }
     
     mdna_file_name <- gsub('_sentences.csv','_mdna.csv',file_name)
-    df_txt <- as_tibble(df_txt) %>%
-#      unnest_tokens(sentence_text,sentence_text,token='sentences') %>%
-      mutate(section = str_search) %>%
-      write_csv(mdna_file_name)
+    if (exists('df_txt') && is.data.frame(get('df_txt'))) {
+      df_txt <- as_tibble(df_txt) %>%
+#        unnest_tokens(sentence_text,sentence_text,token='sentences') %>%
+        mutate(section = str_search) %>%
+        write_csv(mdna_file_name)
+      }
     }
 #df_txt
 #mdna_file_name
@@ -300,17 +307,17 @@ get_documents_text <- function(str_href,str_ticker) {
 }
 
 get_riskfactors_text <- function(str_ticker) {
-  str_ticker <- 'AXP'
+  #str_ticker <- 'ADP'
   
-  df_filing_documents <- read_csv('file_index.csv') %>%
+  df_filing_documents <- read_csv('file_index.csv', col_types = cols()) %>%
     filter(ticker == str_ticker)
-  
-  str_section = 'item 1a'
+  #item 1a
+  str_section = 'Item 1A. Risk Factors'
   str_search = 'risk_factors'
   
   df_filing_documents <- df_filing_documents[df_filing_documents$type...7 == "10-K",]
   
-  #df_filing_documents
+  #print(df_filing_documents$type...7)
   
   #a_row = 1
   for (a_row in 1:nrow(df_filing_documents)) {
@@ -324,24 +331,31 @@ get_riskfactors_text <- function(str_ticker) {
     file_name = paste0(file_end,'/',file.ls)
     
     result <- try({
-      df_txt <- read_csv(file_name)
+      df_txt <- read_csv(file_name, col_types = cols())
     }, silent = TRUE)
+    
+    if (!exists('df_txt')) {
+      return(NULL)
+    }
     #df_txt %>%
     #  group_by(item.name) %>%
     #  summarise(n=n())
     
-    df_txt <- df_txt[grepl(str_section, df_txt$item.name, ignore.case = TRUE), ] # only discussion for now
-    
+    df_txt <- df_txt[grepl(str_section, df_txt$item.name, ignore.case = TRUE), ] 
+    #print(df_txt)
     if (nrow(df_txt) == 0) {
-      write_log(paste0("missing risk factor section for:",str_ticker," ",str_doc_href))
-      write_log(str_doc_href)
+      print(paste0("missing risk factor section for:",str_ticker," ",str_doc_href))
+      #write_log(str_doc_href)
       return(NA)
     }
     
     rf_file_name <- gsub('_sentences.csv','_riskfactors.csv',file_name)
+    if (grepl('.csv',rf_file_name)) {
+    print(rf_file_name)
     df_txt <- as_tibble(df_txt) %>%
       mutate(section = str_search) %>%
       write_csv(rf_file_name)
+    }
   }
   #df_txt
   #mdna_file_name

@@ -13,7 +13,9 @@ suppressPackageStartupMessages(library(purrr))
 suppressPackageStartupMessages(library(rvest))
 suppressPackageStartupMessages(library(tidyr))
 suppressPackageStartupMessages(library(readr))
+
 source('sec_R_utils.R')
+get_riskfactors_text('AAPL')
 
 #https://github.com/DavisVaughan/furrr
 library(furrr) 
@@ -31,17 +33,28 @@ future::plan(multiprocess)
 
 #tell us what we're doing
 
-rlang::last_error()
+#rlang::last_error()
 #get_ticker_text("AXP")
 #get_mdna_text('AXP')
-#get_riskfactors_text('AXP')
+
 #map get_document_text from sec_R_utils.R across the vector Symbol in the df_tickers dataframe
 #show progress bar, thank you Davis 
 result <- future_map_dfr(df_tickers$Symbol, get_ticker_text,.progress = TRUE) #takes a few minutes
-result <- future_map_dfr(df_tickers$Symbol, get_mdna_text,.progress = TRUE) #takes a few minutes
-result <- future_map_dfr(df_tickers$Symbol, get_riskfactors_text,.progress = TRUE) #takes a few minutes
+
+#for debug purposes, in a for loop
+for (ticker in df_tickers$Symbol) {
+  print(ticker)
+  get_mdna_text(ticker)
+}
+#for debug
+for (ticker in df_tickers$Symbol) {
+  print(ticker)
+  get_riskfactors_text(ticker)
+}
+#yes we need to get to use these ... but debug more first.
+#result <- future_map_dfr(df_tickers$Symbol, get_mdna_text,.progress = TRUE) #takes a few minutes
+#result <- future_map_dfr(df_tickers$Symbol, get_riskfactors_text,.progress = TRUE) #takes a few minutes
 
 print('done')
 
-df_tickers
 
