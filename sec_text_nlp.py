@@ -18,13 +18,15 @@ class SECTextNLP(object):
 
     def get_file_path(self):
         z = list(self.df_file_index['local_file_name'])
-        file_dir = z[0].split('/')
-        file_dir = file_dir[1:len(file_dir)-2]
-        self.file_path = ''
-        for item in file_dir:
-            if len(item)>0:
-                self.file_path = self.file_path+"/" + item + "/"
-        return self.file_path
+        if len(z):
+            file_dir = z[0].split('/')
+            file_dir = file_dir[1:len(file_dir)-2]
+            self.file_path = ''
+            for item in file_dir:
+                if len(item)>0:
+                    self.file_path = self.file_path+"/" + item + "/"
+            return self.file_path
+        return None
 
     def save_to_csv(self,df,file_name):
         file_name = self.file_path+file_name+'.csv'
@@ -230,7 +232,8 @@ class SECTextNLP(object):
             except:
                 print(file_path+" error.")
                 return None
-        self.df_text = pd.concat(list_text)
+        if len(list_text) > 0:
+            self.df_text = pd.concat(list_text)
         return 
 
     def get_words_with_trademark(self,df):
