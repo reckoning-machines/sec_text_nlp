@@ -2,14 +2,19 @@
 
 from sec_nlp_utils import *
 
+PROCESSED_FILES_DIR = str(LOCAL_PATH) + '/processed_files'
+import os
+os.makedirs(PROCESSED_FILES_DIR, exist_ok=True)
+
 class SECTextNLP(object):
     def __init__(self, ticker):
+        #to do = handle no data.
         self.ticker = ticker
         self.get_files_list()
+        self.get_file_path()           
         self.get_full_text()
         self.get_mdna_text()
         self.get_riskfactors_text()
-        self.get_file_path()
 
     def year_month(self,df,col):
       df[col] = pd.to_datetime(df[col])
@@ -29,7 +34,8 @@ class SECTextNLP(object):
         return None
 
     def save_to_csv(self,df,file_name):
-        file_name = self.file_path+file_name+'.csv'
+        #file_name = self.file_path+file_name+'.csv'
+        file_name = str(PROCESSED_FILES_DIR) + '/' + self.ticker + '_' + file_name + '.csv'
         df.to_csv(file_name)
         
     def read_from_csv(self,csv_file_name):
